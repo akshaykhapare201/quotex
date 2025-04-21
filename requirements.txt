@@ -11,3 +11,4 @@ scipy==1.11.3
 gunicorn 
 beautifulsoup4
 websocket-client
+pyOpenSSL
