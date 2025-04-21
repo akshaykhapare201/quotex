@@ -1,4 +1,5 @@
 import ssl
+import os
 from requests import Session
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
@@ -46,21 +47,30 @@ class CipherSuiteAdapter(HTTPAdapter):
                 )
 
         if not self.ssl_context:
-            self.ssl_context = ssl.create_default_context(
-                ssl.Purpose.SERVER_AUTH
-            )
+            try:
+                self.ssl_context = ssl.create_default_context(
+                    ssl.Purpose.SERVER_AUTH
+                )
+                
+                self.ssl_context.orig_wrap_socket = self.ssl_context.wrap_socket
+                self.ssl_context.wrap_socket = self.wrap_socket
 
-            self.ssl_context.orig_wrap_socket = self.ssl_context.wrap_socket
-            self.ssl_context.wrap_socket = self.wrap_socket
-
-            if self.server_hostname:
-                self.ssl_context.server_hostname = self.server_hostname
-
-            self.ssl_context.set_ciphers(self.cipherSuite)
-            self.ssl_context.set_ecdh_curve(self.ecdhCurve)
-
-            self.ssl_context.minimum_version = ssl.TLSVersion.TLSv1_2
-            self.ssl_context.maximum_version = ssl.TLSVersion.TLSv1_3
+                if self.server_hostname:
+                    self.ssl_context.server_hostname = self.server_hostname
+                
+                # Use safer default cipher suite if in production environment
+                if os.environ.get('RENDER') or os.environ.get('PRODUCTION'):
+                    self.cipherSuite = 'HIGH:!aNULL:!MD5'
+                
+                self.ssl_context.set_ciphers(self.cipherSuite)
+                self.ssl_context.set_ecdh_curve(self.ecdhCurve)
+                
+                self.ssl_context.minimum_version = ssl.TLSVersion.TLSv1_2
+                self.ssl_context.maximum_version = ssl.TLSVersion.TLSv1_3
+            except Exception as e:
+                print(f"SSL Context initialization error: {e}")
+                # Fallback to basic SSL context if advanced options fail
+                self.ssl_context = ssl.create_default_context()
 
         super(CipherSuiteAdapter, self).__init__(**kwargs)
 
