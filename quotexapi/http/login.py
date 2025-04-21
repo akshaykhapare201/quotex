@@ -166,7 +166,8 @@ class Login(Browser):
         status, msg = await self._post(data)
         if not status:
             print(msg)
-            exit(0)
+            # Don't exit the program, just return the failure status
+            return status, msg
 
         self.get_profile()
 

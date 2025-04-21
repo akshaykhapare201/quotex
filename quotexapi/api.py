@@ -440,9 +440,11 @@ class QuotexAPI(object):
         )
         print(message)
         if not status:
-            sys.exit(1)
+            # Don't exit the program, return failure status instead
+            return False, message
         global_value.SSID = self.session_data.get("token")
         self.is_logged = True
+        return True, "Authentication successful"
 
     async def start_websocket(self):
         global_value.check_websocket_if_connect = None
